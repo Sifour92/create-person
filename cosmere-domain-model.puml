@@ -1,0 +1,134 @@
+@startuml Cosmere RPG — Domain Model (Концептуальная модель)
+' =====================================================
+' Шаг 2 из OOA/D: Domain Model
+' Показывает концепции РЕАЛЬНОГО МИРА, не Java-классы
+' =====================================================
+
+skinparam classBackgroundColor #FEFEFE
+skinparam classBorderColor #444
+skinparam arrowColor #444
+skinparam packageBackgroundColor #F0F4FF
+skinparam classFontSize 13
+skinparam shadowing false
+
+title Domain Model — Cosmere RPG Character Sheet
+
+package "Персонаж" {
+    class Character {
+        name
+        tier
+        size
+    }
+
+    class Attributes {
+        strength
+        speed
+        intellect
+        willpower
+        awareness
+        presence
+    }
+
+    class Resources {
+        health
+        focus
+        investiture
+    }
+
+    class Defenses {
+        physical
+        cognitive
+        spiritual
+    }
+
+    class Skill {
+        key (agi, lwp, ded...)
+        rank
+        unlocked
+    }
+}
+
+package "Элементы листа (Items)" {
+    abstract class Item {
+        name
+        type
+        description
+    }
+
+    class Ancestry {
+        size
+        bonusTalents
+    }
+
+    class Culture {
+        expertises
+    }
+
+    class HeroicPath {
+        pathType
+        specialties
+        keyTalent
+    }
+
+    class Action {
+        activationType
+        cost
+        damage
+    }
+}
+
+package "Эффекты" {
+    class Event {
+        trigger (add / remove)
+        handlerType
+    }
+
+    class Expertise {
+        id
+        type (cultural, lore...)
+        label
+    }
+}
+
+' Связи персонажа
+Character "1" *-- "1" Attributes : has
+Character "1" *-- "1" Resources   : has
+Character "1" *-- "1" Defenses    : has
+Character "1" *-- "0..*" Skill    : has
+
+' Персонаж владеет элементами
+Character "1" o-- "0..1" Ancestry   : chooses
+Character "1" o-- "0..1" Culture    : belongs to
+Character "1" o-- "1..*" HeroicPath : follows
+Character "1" o-- "0..*" Action     : knows
+
+' Иерархия Item
+Item <|-- Ancestry
+Item <|-- Culture
+Item <|-- HeroicPath
+Item <|-- Action
+
+' Item имеет события
+Item "1" *-- "0..*" Event : triggers
+
+' Culture даёт Expertise
+Culture "1" --> "0..*" Expertise : grants / revokes
+
+note bottom of Character
+  Главная сущность.
+  Агрегирует все остальные концепции.
+end note
+
+note right of Item
+  Все элементы листа
+  имеют общую структуру:
+  id, name, type, description, events
+end note
+
+note right of Event
+  Срабатывает при
+  добавлении/удалении Item
+  к/от персонажа
+end note
+
+@enduml

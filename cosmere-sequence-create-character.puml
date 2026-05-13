@@ -1,0 +1,55 @@
+@startuml Cosmere RPG — Sequence: Create Character
+' =====================================================
+' Use Case: Создать персонажа (UC1)
+' =====================================================
+
+skinparam sequenceArrowThickness 2
+skinparam sequenceBoxBackgroundColor #F0F4FF
+skinparam participantBackgroundColor #FEFEFE
+skinparam sequenceLifeLineBorderColor #888
+skinparam shadowing false
+
+title Sequence Diagram — Создать персонажа (UC1)
+
+actor        User
+participant  "CharacterController"  as CC  #FFE4B5
+participant  "CharacterService"     as CS  #C8E6C9
+participant  "PlayerCharacter"      as PC  #FFF9C4
+participant  "CharacterRepository"  as CR  #BBDEFB
+
+User -> CC : POST /api/cosmere/characters\n{ name, tier, size }
+
+activate CC
+CC -> CS : create(CreateCharacterRequest)
+activate CS
+
+CS -> PC ** : new PlayerCharacter()
+activate PC
+note over PC
+  Инициализирует defaults:
+  - Attributes (все = 1)
+  - Resources (health=0, focus=0)
+  - Defenses (все = 0)
+  - Skills (все rank=0)
+  - Items = []
+end note
+PC --> CS : character
+deactivate PC
+
+CS -> CS : character.setName(request.name())
+CS -> CS : character.setTier(request.tier())
+CS -> CS : character.setSize(request.size())
+
+CS -> CR : save(character)
+activate CR
+CR --> CS : PlayerCharacter (id assigned)
+deactivate CR
+
+CS -> CS : map to PlayerCharacterDto
+CS --> CC : PlayerCharacterDto
+deactivate CS
+
+CC --> User : 201 Created + PlayerCharacterDto
+deactivate CC
+
+@enduml

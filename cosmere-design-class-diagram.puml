@@ -1,0 +1,260 @@
+@startuml Cosmere RPG — Design Class Diagram
+' =====================================================
+' Шаг 4 из OOA/D: Design Class Diagram
+' Показывает JAVA-КЛАССЫ с методами и полями
+' =====================================================
+
+skinparam classBackgroundColor #FEFEFE
+skinparam classBorderColor #555
+skinparam arrowColor #555
+skinparam packageBackgroundColor #FFF8F0
+skinparam classFontSize 12
+skinparam shadowing false
+
+title Design Class Diagram — Spring Boot Implementation
+
+' =================== ENTITIES ===================
+package "domain" {
+
+    class PlayerCharacter <<Entity>> {
+        - id: UUID
+        - name: String
+        - tier: int
+        - size: String
+        - img: String
+        - attributes: Attributes
+        - resources: Resources
+        - defenses: Defenses
+        - skills: List<CharacterSkill>
+        - items: List<Item>
+        - createdAt: LocalDateTime
+        - updatedAt: LocalDateTime
+        + addItem(item: Item): void
+        + removeItem(itemId: UUID): void
+        + getItemsByType(type: ItemType): List<Item>
+    }
+
+    class Item <<Entity>> {
+        - id: UUID
+        - name: String
+        - type: ItemType
+        - itemKey: String
+        - img: String
+        - descriptionValue: String
+        - descriptionShort: String
+        - systemData: String (JSONB)
+    }
+
+    class CharacterSkill <<Entity>> {
+        - id: CharacterSkillId
+        - rank: int
+        - modBonus: int
+        - modOverride: Integer
+        - unlocked: boolean
+    }
+
+    class CharacterSkillId <<Embeddable>> {
+        - characterId: UUID
+        - skillKey: String
+    }
+
+    enum ItemType {
+        ANCESTRY
+        CULTURE
+        PATH
+        ACTION
+    }
+
+    ' Embeddables
+    class Attributes <<Embeddable>> {
+        - strength: AttributeValue
+        - speed: AttributeValue
+        - intellect: AttributeValue
+        - willpower: AttributeValue
+        - awareness: AttributeValue
+        - presence: AttributeValue
+    }
+
+    class Resources <<Embeddable>> {
+        - health: ResourceValue
+        - focus: ResourceValue
+        - investiture: ResourceValue
+    }
+
+    class Defenses <<Embeddable>> {
+        - physical: DefenseValue
+        - cognitive: DefenseValue
+        - spiritual: DefenseValue
+    }
+
+    class AttributeValue <<Embeddable>> {
+        - value: int
+        - bonus: int
+    }
+
+    class ResourceValue <<Embeddable>> {
+        - value: int
+        - maxOverride: Integer
+        - bonus: int
+    }
+
+    class DefenseValue <<Embeddable>> {
+        - override: Integer
+        - bonus: int
+    }
+}
+
+' =================== REPOSITORIES ===================
+package "repository" {
+    interface CharacterRepository <<Repository>> {
+        + findById(id: UUID): Optional<PlayerCharacter>
+        + findAll(): List<PlayerCharacter>
+        + findByNameContaining(name: String): List<PlayerCharacter>
+        + save(character: PlayerCharacter): PlayerCharacter
+        + deleteById(id: UUID): void
+    }
+
+    interface ItemRepository <<Repository>> {
+        + findById(id: UUID): Optional<Item>
+        + findAll(): List<Item>
+        + findByType(type: ItemType): List<Item>
+        + findByItemKey(key: String): Optional<Item>
+        + save(item: Item): Item
+        + deleteById(id: UUID): void
+    }
+}
+
+' =================== SERVICES ===================
+package "service" {
+    class CharacterService <<Service>> {
+        - characterRepository: CharacterRepository
+        - itemRepository: ItemRepository
+        - eventProcessor: EventProcessor
+        + create(request: CreateCharacterRequest): PlayerCharacterDto
+        + findById(id: UUID): PlayerCharacterDto
+        + findAll(): List<PlayerCharacterDto>
+        + updateAttributes(id: UUID, request: UpdateAttributesRequest): PlayerCharacterDto
+        + updateSkill(id: UUID, skillKey: String, rank: int): PlayerCharacterDto
+        + addItem(characterId: UUID, itemId: UUID): PlayerCharacterDto
+        + removeItem(characterId: UUID, itemId: UUID): PlayerCharacterDto
+        + delete(id: UUID): void
+    }
+
+    class ItemService <<Service>> {
+        - itemRepository: ItemRepository
+        + create(request: CreateItemRequest): ItemDto
+        + findById(id: UUID): ItemDto
+        + findAll(type: ItemType): List<ItemDto>
+        + delete(id: UUID): void
+    }
+
+    class EventProcessor <<Component>> {
+        - characterRepository: CharacterRepository
+        + process(item: Item, character: PlayerCharacter, trigger: EventTrigger): void
+        - handleGrantExpertises(data: Map, character: PlayerCharacter): void
+        - handleRemoveExpertises(data: Map, character: PlayerCharacter): void
+        - handleGrantItems(data: Map, character: PlayerCharacter): void
+        - handleRemoveItems(data: Map, character: PlayerCharacter): void
+    }
+}
+
+' =================== CONTROLLERS ===================
+package "controller" {
+    class CharacterController <<RestController>> {
+        - characterService: CharacterService
+        + getAll(): ResponseEntity<List<PlayerCharacterDto>>
+        + getById(id: UUID): ResponseEntity<PlayerCharacterDto>
+        + create(request: CreateCharacterRequest): ResponseEntity<PlayerCharacterDto>
+        + updateAttributes(id: UUID, request: UpdateAttributesRequest): ResponseEntity<PlayerCharacterDto>
+        + addItem(characterId: UUID, itemId: UUID): ResponseEntity<PlayerCharacterDto>
+        + removeItem(characterId: UUID, itemId: UUID): ResponseEntity<PlayerCharacterDto>
+        + delete(id: UUID): ResponseEntity<Void>
+    }
+
+    class ItemController <<RestController>> {
+        - itemService: ItemService
+        + getAll(type: ItemType): ResponseEntity<List<ItemDto>>
+        + getById(id: UUID): ResponseEntity<ItemDto>
+        + create(request: CreateItemRequest): ResponseEntity<ItemDto>
+        + delete(id: UUID): ResponseEntity<Void>
+    }
+}
+
+' =================== DTOs ===================
+package "dto" {
+    class PlayerCharacterDto <<record>> {
+        id: UUID
+        name: String
+        tier: int
+        size: String
+        attributes: AttributesDto
+        resources: ResourcesDto
+        defenses: DefensesDto
+        skills: Map<String, SkillDto>
+        items: List<ItemDto>
+    }
+
+    class ItemDto <<record>> {
+        id: UUID
+        name: String
+        type: ItemType
+        itemKey: String
+        descriptionShort: String
+    }
+
+    class CreateCharacterRequest <<record>> {
+        name: String
+        tier: int
+        size: String
+    }
+
+    class UpdateAttributesRequest <<record>> {
+        strength: Integer
+        speed: Integer
+        intellect: Integer
+        willpower: Integer
+        awareness: Integer
+        presence: Integer
+    }
+
+    class CreateItemRequest <<record>> {
+        name: String
+        type: ItemType
+        itemKey: String
+        img: String
+        descriptionValue: String
+        descriptionShort: String
+        systemData: String
+    }
+}
+
+' =================== СВЯЗИ ===================
+
+' Entity relations
+PlayerCharacter "1" *-- "1" Attributes
+PlayerCharacter "1" *-- "1" Resources
+PlayerCharacter "1" *-- "1" Defenses
+PlayerCharacter "1" *-- "0..*" CharacterSkill
+PlayerCharacter "many" o-- "many" Item
+CharacterSkill *-- CharacterSkillId
+
+Attributes *-- AttributeValue
+Resources  *-- ResourceValue
+Defenses   *-- DefenseValue
+Item --> ItemType
+
+' Service dependencies
+CharacterService --> CharacterRepository
+CharacterService --> ItemRepository
+CharacterService --> EventProcessor
+ItemService      --> ItemRepository
+
+' Controller dependencies
+CharacterController --> CharacterService
+ItemController      --> ItemService
+
+' Repository implementations
+CharacterRepository ..> PlayerCharacter
+ItemRepository      ..> Item
+
+@enduml

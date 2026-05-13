@@ -1,0 +1,85 @@
+@startuml Cosmere RPG — Sequence: Add Item to Character
+' =====================================================
+' Шаг 3 из OOA/D: Sequence Diagram
+' Use Case: Добавить элемент (Culture/Path/Action) к персонажу
+' Показывает КТО ЧТО ВЫЗЫВАЕТ
+' =====================================================
+
+skinparam sequenceArrowThickness 2
+skinparam sequenceBoxBackgroundColor #F0F4FF
+skinparam participantBackgroundColor #FEFEFE
+skinparam sequenceLifeLineBorderColor #888
+skinparam shadowing false
+
+title Sequence Diagram — Добавить Item к персонажу (UC2)
+
+actor        User
+participant  "CharacterController"  as CC  #FFE4B5
+participant  "CharacterService"     as CS  #C8E6C9
+participant  "CharacterRepository"  as CR  #BBDEFB
+participant  "ItemRepository"       as IR  #BBDEFB
+participant  "PlayerCharacter"      as PC  #FFF9C4
+participant  "Item"                 as IT  #FFF9C4
+participant  "EventProcessor"       as EP  #F8BBD9
+
+User -> CC : POST /api/cosmere/characters/{id}/items/{itemId}
+
+activate CC
+CC -> CS : addItem(characterId, itemId)
+activate CS
+
+CS -> CR : findById(characterId)
+activate CR
+CR --> CS : Optional<PlayerCharacter>
+deactivate CR
+
+CS -> IR : findById(itemId)
+activate IR
+IR --> CS : Optional<Item>
+deactivate IR
+
+CS -> PC : addItem(item)
+activate PC
+PC -> PC : items.add(item)
+deactivate PC
+
+CS -> IT : getSystemData()
+activate IT
+IT --> CS : jsonString (events map)
+deactivate IT
+
+CS -> EP : process(item, character, ADD_TO_ACTOR)
+activate EP
+
+note over EP
+  Парсит systemData (JSONB)
+  Находит events с trigger = "add-to-actor"
+  Применяет каждый handler
+end note
+
+alt handlerType = "grant-expertises"
+    EP -> PC : addExpertise(expertise)
+    activate PC
+    PC --> EP
+    deactivate PC
+else handlerType = "grant-items"
+    EP -> CS : addItem(character, linkedItemId)
+    note right: рекурсивно добавляет\nсвязанные предметы
+else handlerType = "none"
+    EP -> EP : skip
+end
+
+deactivate EP
+
+CS -> CR : save(character)
+activate CR
+CR --> CS : PlayerCharacter (saved)
+deactivate CR
+
+CS --> CC : PlayerCharacterDto
+deactivate CS
+
+CC --> User : 200 OK + PlayerCharacterDto
+deactivate CC
+
+@enduml

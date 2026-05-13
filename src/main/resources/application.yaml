@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/demo
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-init-sql: SET search_path TO bookings, cosmere
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: bookings
+    show-sql: true
+  flyway:
+    enabled: true
+    schemas: bookings, cosmere
+    default-schema: bookings
+    create-schemas: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
