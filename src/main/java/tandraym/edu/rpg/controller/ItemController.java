@@ -56,8 +56,7 @@ public class ItemController {
     @PutMapping("/{id}")
     public ResponseEntity<ItemDto> update(
             @PathVariable UUID id,
-            @RequestBody UpdateItemRequest request
-    ) {
+            @RequestBody UpdateItemRequest request) {
         return ResponseEntity.ok(itemService.update(id, request));
     }
 
