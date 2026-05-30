@@ -1,10 +1,12 @@
 package tandraym.edu.rpg.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tandraym.edu.rpg.dto.*;
+import tandraym.edu.rpg.dto.request.CreateItemRequest;
 import tandraym.edu.rpg.service.ItemService;
 
 import java.util.UUID;
@@ -46,7 +48,7 @@ public class ItemController {
 
     // ── POST /api/cosmere/items ────────────────────────────────────────────
     @PostMapping
-    public ResponseEntity<ItemDto> create(@RequestBody CreateItemRequest request) {
+    public ResponseEntity<ItemDto> create(@Valid @RequestBody CreateItemRequest request) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(itemService.create(request));

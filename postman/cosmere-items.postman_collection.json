@@ -1,0 +1,325 @@
+{
+  "info": {
+    "name": "Cosmere — Items API",
+    "_postman_id": "c05m3re-1tem-4pi0-0000-000000000001",
+    "description": "Тесты для /api/cosmere/items.\n\nФокус — POST (создание предмета с полиморфным `system` через внешний дискриминатор `type`), плюс полный CRUD-флоу.\n\nКонтракт совпадает с экспортом Foundry VTT (см. src/main/resources/example/axe-test.json):\n```\n{\n  \"name\":   \"...\",\n  \"type\":   \"weapon\",   // дискриминатор\n  \"system\": { ... },     // полиморфное тело (WeaponItemDataModel при type=weapon)\n  \"effects\": [],\n  \"flags\":   {}\n}\n```\n\nПеременные:\n- baseUrl — адрес бэкенда (по умолчанию http://localhost:8081)\n- itemId  — UUID созданного предмета, проставляется автоматически после успешного POST\n\nПорядок запуска (Collection Runner): сверху вниз — POST «Weapon (full as Foundry axe)» сохраняет itemId, который используют Get By Id / Update / Delete.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081", "type": "string" },
+    { "key": "itemId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "POST — Create / Polymorphic",
+      "item": [
+        {
+          "name": "Weapon (full as Foundry axe)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('type сохранён в lowercase = weapon', () => pm.expect(body.type).to.eql('weapon'));",
+                  "pm.test('есть id (UUID)', () => pm.expect(body.id).to.match(/^[0-9a-f-]{36}$/i));",
+                  "pm.test('name вернулся', () => pm.expect(body.name).to.eql('Топор (Axe)'));",
+                  "if (body.id) { pm.collectionVariables.set('itemId', body.id); console.log('saved itemId =', body.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/cosmere/items", "host": ["{{baseUrl}}"], "path": ["api","cosmere","items"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Топор (Axe)\",\n  \"type\": \"weapon\",\n  \"system\": {\n    \"id\": \"axe\",\n    \"type\": \"heavy_wpn\",\n    \"description\": { \"value\": \"\", \"chat\": \"\", \"short\": \"\" },\n    \"equipped\": false,\n    \"alwaysEquipped\": false,\n    \"equip\": { \"type\": \"hold\", \"hold\": \"one_handed\" },\n    \"activation\": {\n      \"cost\": { \"value\": 1, \"type\": \"act\" },\n      \"consume\": [],\n      \"flavor\": \"\",\n      \"type\": \"skill_test\",\n      \"skill\": \"hwp\",\n      \"attribute\": \"str\",\n      \"modifierFormula\": \"\",\n      \"plotDie\": false,\n      \"opportunity\": null,\n      \"complication\": null,\n      \"uses\": null\n    },\n    \"damage\": {\n      \"skill\": \"hwp\",\n      \"attribute\": \"str\",\n      \"formula\": \"1d6\",\n      \"type\": \"keen\",\n      \"grazeOverrideFormula\": \"\"\n    },\n    \"traits\": {\n      \"thrown\":  { \"defaultActive\": true,  \"defaultValue\": null, \"value\": null, \"active\": true,  \"expertise\": { \"toggleActive\": false, \"value\": null } },\n      \"offhand\": { \"defaultActive\": false, \"defaultValue\": null, \"value\": null, \"active\": false, \"expertise\": { \"toggleActive\": true,  \"value\": null } }\n    },\n    \"weight\": { \"value\": 2, \"unit\": \"lb\" },\n    \"price\": {\n      \"value\": 20,\n      \"currency\": \"spheres\",\n      \"denomination\": { \"primary\": \"mark\", \"secondary\": \"none\" },\n      \"unit\": \"spheres.mark\"\n    },\n    \"expertise\": false,\n    \"attack\": { \"type\": \"melee\", \"range\": { \"value\": 20, \"long\": 60, \"unit\": \"ft\" } },\n    \"quantity\": 1,\n    \"events\": {},\n    \"linkedSkills\": [],\n    \"relationships\": {}\n  },\n  \"effects\": [],\n  \"flags\": {}\n}"
+            },
+            "description": "Полный пример weapon — побайтово совпадает с src/main/resources/example/axe-test.json. Дискриминатор type=\"weapon\" — соседнее поле system, по нему Jackson выбирает WeaponItemDataModel."
+          }
+        },
+        {
+          "name": "Weapon (minimal)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('type = weapon', () => pm.expect(body.type).to.eql('weapon'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/cosmere/items", "host": ["{{baseUrl}}"], "path": ["api","cosmere","items"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Knife\",\n  \"type\": \"weapon\",\n  \"system\": { \"id\": \"knife\" }\n}"
+            },
+            "description": "Минимальный валидный запрос: name + type + system с одним id. Все остальные поля WeaponItemDataModel возьмут значения по умолчанию."
+          }
+        },
+        {
+          "name": "Weapon (Foundry pack — improvised light)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('type = weapon', () => pm.expect(body.type).to.eql('weapon'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/cosmere/items", "host": ["{{baseUrl}}"], "path": ["api","cosmere","items"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Improvised Weapon (Light)\",\n  \"type\": \"weapon\",\n  \"img\": \"icons/weapons/misc/whip-red-yellow.webp\",\n  \"system\": {\n    \"id\": \"improvised-weapon-light\",\n    \"type\": \"special_wpn\",\n    \"description\": { \"value\": \"<p>Improvised light weapon stub.</p>\", \"chat\": \"\", \"short\": \"\" },\n    \"equipped\": false,\n    \"alwaysEquipped\": false,\n    \"equip\": { \"type\": \"hold\" },\n    \"activation\": {\n      \"type\": \"skill_test\",\n      \"cost\": { \"value\": 1, \"type\": \"act\" },\n      \"consume\": [],\n      \"flavor\": \"\",\n      \"plotDie\": false,\n      \"opportunity\": null,\n      \"complication\": null,\n      \"uses\": null,\n      \"skill\": \"lwp\",\n      \"modifierFormula\": \"\",\n      \"attribute\": \"spd\"\n    },\n    \"attack\": { \"type\": \"melee\", \"range\": null },\n    \"damage\": { \"formula\": null, \"type\": null, \"skill\": \"lwp\", \"attribute\": null },\n    \"expertise\": false,\n    \"traits\": {\n      \"fragile\":  { \"defaultActive\": true },\n      \"offhand\":  { \"defaultActive\": false },\n      \"thrown\":   { \"defaultActive\": false }\n    },\n    \"quantity\": 1,\n    \"weight\": { \"value\": 0, \"unit\": \"lb\" },\n    \"price\": { \"value\": 0, \"currency\": \"none\", \"denomination\": { \"primary\": \"none\", \"secondary\": \"none\" }, \"unit\": \"none\" }\n  },\n  \"effects\": [],\n  \"flags\": {}\n}"
+            },
+            "description": "Срез из packs/items/weapons/improvised/improvised-weapon-light.json. Проверяет совместимость с реальными Foundry-экспортами (часть полей null, equip без hold, etc.)."
+          }
+        },
+        {
+          "name": "400 — blank name",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request (@NotBlank name)', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/cosmere/items", "host": ["{{baseUrl}}"], "path": ["api","cosmere","items"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"type\": \"weapon\",\n  \"system\": {}\n}"
+            },
+            "description": "name пустой → нарушение @NotBlank → 400."
+          }
+        },
+        {
+          "name": "400 — unknown ItemType",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('4xx на неизвестный type', () => pm.expect(pm.response.code).to.be.within(400, 499));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/cosmere/items", "host": ["{{baseUrl}}"], "path": ["api","cosmere","items"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mystery\",\n  \"type\": \"banana\",\n  \"system\": {}\n}"
+            },
+            "description": "type=banana не входит в ItemType → ошибка десериализации enum → 4xx."
+          }
+        },
+        {
+          "name": "Unregistered subtype (armor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// ArmorItemDataModel ещё не зарегистрирован в @JsonSubTypes на поле `system`.",
+                  "// Если system непустой → Jackson не найдёт сабтайп для name='armor'.",
+                  "pm.test('пока armor не зарегистрирован → ошибка (4xx/5xx)', () => pm.expect(pm.response.code).to.be.at.least(400));",
+                  "// Когда добавишь @JsonSubTypes.Type(ArmorItemDataModel.class, name='armor') — ожидание поменяй на 201."
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/cosmere/items", "host": ["{{baseUrl}}"], "path": ["api","cosmere","items"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Breastplate\",\n  \"type\": \"armor\",\n  \"system\": { \"id\": \"plate-001\" }\n}"
+            },
+            "description": "Регрессионный тест полиморфизма: armor-сабтайп закомментирован в CreateItemRequest. Сигнал, что пора регистрировать ArmorItemDataModel."
+          }
+        }
+      ]
+    },
+    {
+      "name": "CRUD flow",
+      "item": [
+        {
+          "name": "Get All",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('структура PagedItemsResponse', () => {",
+                  "  pm.expect(b).to.have.property('content').that.is.an('array');",
+                  "  pm.expect(b).to.have.property('totalElements');",
+                  "  pm.expect(b).to.have.property('totalPages');",
+                  "  pm.expect(b).to.have.property('counts');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cosmere/items?type=weapon&search=&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","cosmere","items"],
+              "query": [
+                { "key": "type", "value": "weapon" },
+                { "key": "search", "value": "" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get By Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('id совпадает с сохранённым', () => pm.expect(b.id).to.eql(pm.collectionVariables.get('itemId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/cosmere/items/{{itemId}}", "host": ["{{baseUrl}}"], "path": ["api","cosmere","items","{{itemId}}"] }
+          }
+        },
+        {
+          "name": "Get By Id — 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));",
+                  "const b = pm.response.json();",
+                  "pm.test('тело ошибки структурировано', () => {",
+                  "  pm.expect(b).to.have.property('status', 404);",
+                  "  pm.expect(b).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/cosmere/items/00000000-0000-0000-0000-000000000000", "host": ["{{baseUrl}}"], "path": ["api","cosmere","items","00000000-0000-0000-0000-000000000000"] }
+          }
+        },
+        {
+          "name": "Update",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('name обновлён', () => pm.expect(b.name).to.eql('Топор (reforged)'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/cosmere/items/{{itemId}}", "host": ["{{baseUrl}}"], "path": ["api","cosmere","items","{{itemId}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Топор (reforged)\",\n  \"type\": \"weapon\",\n  \"itemKey\": \"axe\",\n  \"img\": \"icons/weapons/axes/axe-iron.webp\",\n  \"descriptionValue\": \"Перекованный топор.\",\n  \"descriptionShort\": \"Перекованный\",\n  \"systemData\": \"{\\\"damage\\\":{\\\"formula\\\":\\\"1d8\\\",\\\"type\\\":\\\"keen\\\"}}\"\n}"
+            },
+            "description": "PUT — UpdateItemRequest со старым плоским контрактом (name/type/itemKey/img/descriptionValue/descriptionShort/systemData как сырая JSON-строка). После того как PUT тоже перейдёт на полиморфный `system` — поменять тело сюда же."
+          }
+        },
+        {
+          "name": "Delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/cosmere/items/{{itemId}}", "host": ["{{baseUrl}}"], "path": ["api","cosmere","items","{{itemId}}"] }
+          }
+        },
+        {
+          "name": "Delete — confirm gone (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 после удаления', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/cosmere/items/{{itemId}}", "host": ["{{baseUrl}}"], "path": ["api","cosmere","items","{{itemId}}"] }
+          }
+        }
+      ]
+    }
+  ]
+}

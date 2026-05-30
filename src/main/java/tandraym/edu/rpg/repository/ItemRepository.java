@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import tandraym.edu.rpg.domain.Item;
-import tandraym.edu.rpg.domain.ItemType;
+import tandraym.edu.rpg.util.enums.ItemType;
 
 import java.util.List;
 import java.util.UUID;

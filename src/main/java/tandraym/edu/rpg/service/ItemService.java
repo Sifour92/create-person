@@ -1,5 +1,7 @@
 package tandraym.edu.rpg.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -8,9 +10,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tandraym.edu.rpg.domain.Item;
-import tandraym.edu.rpg.domain.ItemType;
 import tandraym.edu.rpg.dto.*;
+import tandraym.edu.rpg.dto.request.CreateItemRequest;
 import tandraym.edu.rpg.repository.ItemRepository;
+import tandraym.edu.rpg.util.enums.ItemType;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,6 +24,7 @@ import java.util.stream.Collectors;
 public class ItemService {
 
     private final ItemRepository itemRepository;
+    private final ObjectMapper   objectMapper;
 
     // ── Read ─────────────────────────────────────────────────────────────────
 
@@ -67,13 +71,13 @@ public class ItemService {
     @Transactional
     public ItemDto create(CreateItemRequest req) {
         Item item = Item.builder()
-                .name(req.name())
-                .type(parseTypeRequired(req.type()))
-                .itemKey(req.itemKey())
-                .img(req.img())
-                .descriptionValue(req.descriptionValue())
-                .descriptionShort(req.descriptionShort())
-                .systemData(req.systemData())
+                .name(req.getName())
+                .type(req.getType())
+                .img(req.getImg())
+                .itemKey(extractItemKey(req.getSystem()))
+                .descriptionValue(extractDescriptionValue(req.getSystem()))
+                .descriptionShort(extractDescriptionShort(req.getSystem()))
+                .systemData(serializeSystem(req.getSystem()))
                 .build();
 
         return toDto(itemRepository.save(item));
@@ -143,6 +147,46 @@ public class ItemService {
     private ItemType parseType(String type) {
         if (type == null || type.isBlank()) return null;
         return parseTypeRequired(type);
+    }
+
+    // ── system → плоские колонки Item ────────────────────────────────────────
+    //
+    // Плоские колонки itemKey / descriptionValue / descriptionShort нужны
+    // фронту для таблицы и поиска без парсинга JSON в каждом запросе.
+    // Когда добавится новый сабтайп (Armor и т.д.) — добавь сюда ветку
+    // instanceof. Или вынеси getId()/getDescription() в общий интерфейс.
+
+    /** FVTT {@code system.id} — стабильный человекочитаемый ключ (e.g. "axe"). */
+    private String extractItemKey(ItemDataModel system) {
+        if (system instanceof WeaponItemDataModel w) return w.getId();
+        return null;
+    }
+
+    /** Полное HTML-описание из {@code system.description.value}. */
+    private String extractDescriptionValue(ItemDataModel system) {
+        if (system instanceof WeaponItemDataModel w && w.getDescription() != null) {
+            return w.getDescription().getValue();
+        }
+        return null;
+    }
+
+    /** Короткий подзаголовок из {@code system.description.short}. */
+    private String extractDescriptionShort(ItemDataModel system) {
+        if (system instanceof WeaponItemDataModel w && w.getDescription() != null) {
+            return w.getDescription().getShortDescription();
+        }
+        return null;
+    }
+
+    /** Сериализует system целиком в JSON-строку для колонки {@code system_data}. */
+    private String serializeSystem(ItemDataModel system) {
+        if (system == null) return null;
+        try {
+            return objectMapper.writeValueAsString(system);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(
+                    "Failed to serialize system data: " + e.getMessage(), e);
+        }
     }
 
     /** Parses required type string — throws on null/blank/unknown. */

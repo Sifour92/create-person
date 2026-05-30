@@ -2,6 +2,7 @@ package tandraym.edu.rpg.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import tandraym.edu.rpg.util.enums.ItemType;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

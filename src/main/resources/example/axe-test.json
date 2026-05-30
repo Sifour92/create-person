@@ -1,0 +1,92 @@
+{
+  "name": "Топор (Axe)",
+  "type": "weapon",
+  "system": {
+    "id": "axe",
+    "type": "heavy_wpn",
+    "description": {
+      "value": "",
+      "chat": "",
+      "short": ""
+    },
+    "equipped": false,
+    "activation": {
+      "cost": {
+        "value": 1,
+        "type": "act"
+      },
+      "consume": [],
+      "flavor": "",
+      "type": "skill_test",
+      "skill": "hwp",
+      "attribute": "str",
+      "modifierFormula": "",
+      "plotDie": false,
+      "opportunity": null,
+      "complication": null,
+      "uses": null
+    },
+    "damage": {
+      "skill": "hwp",
+      "attribute": "str",
+      "formula": "1d6",
+      "type": "keen",
+      "grazeOverrideFormula": ""
+    },
+    "traits": {
+      "thrown": {
+        "defaultActive": true,
+        "defaultValue": null,
+        "value": null,
+        "active": true,
+        "expertise": {
+          "toggleActive": false,
+          "value": null
+        }
+      },
+      "offhand": {
+        "defaultActive": false,
+        "expertise": {
+          "toggleActive": true,
+          "value": null
+        },
+        "defaultValue": null,
+        "value": null,
+        "active": false
+      }
+    },
+    "weight": {
+      "value": 2,
+      "unit": "lb"
+    },
+    "price": {
+      "value": 20,
+      "currency": "spheres",
+      "denomination": {
+        "primary": "mark",
+        "secondary": "none"
+      },
+      "unit": "spheres.mark"
+    },
+    "expertise": false,
+    "attack": {
+      "type": "melee",
+      "range": {
+        "value": 20,
+        "long": 60,
+        "unit": "ft"
+      }
+    },
+    "alwaysEquipped": false,
+    "equip": {
+      "type": "hold",
+      "hold": "one_handed"
+    },
+    "quantity": 1,
+    "events": {},
+    "linkedSkills": [],
+    "relationships": {}
+  },
+  "effects": [],
+  "flags": {}
+}
