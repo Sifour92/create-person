@@ -2,17 +2,25 @@ package tandraym.edu.rpg.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import tandraym.edu.rpg.util.enums.ItemType;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /**
  * Cosmere RPG item — universal entity for all FVTT item types.
  *
- * <p>{@code systemData} stores the raw FVTT {@code system} JSON object as text,
- * preserving the full game-mechanics payload (damage, traits, weight, price, …).
- * The frontend reads and writes this blob as-is.</p>
+ * <p>{@code systemData} stores the full FVTT {@code system} object as PostgreSQL
+ * JSONB. Hibernate сериализует Map через Jackson автоматически. Колонка имеет
+ * GIN-индекс (миграция V2), так что можно искать по полям внутри JSON:</p>
+ * <pre>
+ *   WHERE system_data-&gt;'traits' ? 'thrown'              — все weapons с thrown
+ *   WHERE system_data-&gt;'damage'-&gt;&gt;'type' = 'keen'   — все с keen damage
+ *   WHERE system_data @&gt; '{"type":"heavy_wpn"}'         — все heavy_wpn
+ * </pre>
  */
 @Entity
 @Table(name = "items")
@@ -51,11 +59,12 @@ public class Item {
     private String descriptionShort;
 
     /**
-     * Full FVTT {@code system} object serialized as JSON string.
-     * Contains damage, traits, weight, price, activation, attack, etc.
+     * Full FVTT {@code system} object as JSONB. Hibernate use Jackson to
+     * marshal/unmarshal Map ↔ jsonb автоматически.
      */
-    @Column(name = "system_data", columnDefinition = "TEXT")
-    private String systemData;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "system_data", columnDefinition = "jsonb")
+    private Map<String, Object> systemData;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

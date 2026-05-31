@@ -1,6 +1,7 @@
 package tandraym.edu.rpg.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -77,7 +78,7 @@ public class ItemService {
                 .itemKey(extractItemKey(req.getSystem()))
                 .descriptionValue(extractDescriptionValue(req.getSystem()))
                 .descriptionShort(extractDescriptionShort(req.getSystem()))
-                .systemData(serializeSystem(req.getSystem()))
+                .systemData(systemToMap(req.getSystem()))
                 .build();
 
         return toDto(itemRepository.save(item));
@@ -94,7 +95,7 @@ public class ItemService {
         item.setImg(req.img());
         item.setDescriptionValue(req.descriptionValue());
         item.setDescriptionShort(req.descriptionShort());
-        item.setSystemData(req.systemData());
+        item.setSystemData(jsonStringToMap(req.systemData()));
 
         return toDto(itemRepository.save(item));
     }
@@ -139,7 +140,7 @@ public class ItemService {
                 item.getItemKey(),
                 item.getImg(),
                 item.getDescriptionShort(),
-                item.getSystemData()
+                mapToJsonString(item.getSystemData())
         );
     }
 
@@ -178,14 +179,33 @@ public class ItemService {
         return null;
     }
 
-    /** Сериализует system целиком в JSON-строку для колонки {@code system_data}. */
-    private String serializeSystem(ItemDataModel system) {
+    // ── Конверсия system ↔ jsonb-колонка ──────────────────────────────────
+
+    /** ItemDataModel POJO → Map для записи в jsonb-колонку. */
+    private Map<String, Object> systemToMap(ItemDataModel system) {
         if (system == null) return null;
+        return objectMapper.convertValue(system, new TypeReference<>() {});
+    }
+
+    /** JSON-строка (legacy PUT contract) → Map для jsonb-колонки. */
+    private Map<String, Object> jsonStringToMap(String json) {
+        if (json == null || json.isBlank()) return null;
         try {
-            return objectMapper.writeValueAsString(system);
+            return objectMapper.readValue(json, new TypeReference<>() {});
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException(
-                    "Failed to serialize system data: " + e.getMessage(), e);
+                    "Invalid systemData JSON: " + e.getMessage(), e);
+        }
+    }
+
+    /** Map из jsonb-колонки → JSON-строка для ItemDto (фронт ждёт строку). */
+    private String mapToJsonString(Map<String, Object> map) {
+        if (map == null) return null;
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(
+                    "Failed to serialize systemData: " + e.getMessage(), e);
         }
     }
 
